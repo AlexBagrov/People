@@ -1,0 +1,48 @@
+name: Telegram Bot Notifications
+
+on:
+  # По расписанию
+  schedule:
+    - cron: '0 8 * * *'    # Каждый день в 8:00 UTC (11:00 по Москве)
+    - cron: '0 18 * * *'   # Каждый день в 18:00 UTC (21:00 по Москве)
+  
+  # Ручной запуск для тестирования
+  workflow_dispatch:
+    inputs:
+      test_message:
+        description: 'Test message to send'
+        required: false
+        default: 'Manual test from GitHub Actions'
+  
+  # При изменениях в main ветке (для тестирования)
+  push:
+    branches: [ main ]
+    paths: ['src/**']  # только при изменении папки src
+
+jobs:
+  send-notifications:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Run Telegram bot
+      run: python src/main.py
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        TEST_MESSAGE: ${{ github.event.inputs.test_message }}
