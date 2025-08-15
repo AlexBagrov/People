@@ -76,25 +76,51 @@ class SupabaseManager:
     def get_contact_data(self):
         """Получаем записи из таблицы contact по дате события"""
         try:
-            # Вычисляем дату события (сегодня + 20 дней для birthday)
+            # Вычисляем дату события для текущего года
             from datetime import datetime, timedelta
-            target_date = (datetime.now() + timedelta(days=20)).strftime('%Y-%m-%d')
             
-            logger.info(f"Fetching records for event_date: {target_date}, event_type: birthday")
+            # Получаем все записи с event_type = birthday
+            response = self.supabase.from_('contact').select('name, message, event_date, event_type').eq('event_type', 'birthday').execute()
             
-            # Выбираем записи с конкретной датой и типом события
-            response = self.supabase.from_('contact').select('name, message, event_date, event_type').eq('event_date', target_date).eq('event_type', 'birthday').execute()
+            logger.info(f"Found {len(response.data) if response.data else 0} birthday records")
             
-            logger.info(f"Raw response: {response}")
-            logger.info(f"Response data: {response.data}")
-            logger.info(f"Response count: {len(response.data) if response.data else 0}")
+            if not response.data:
+                return []
             
-            if response.data:
-                logger.info(f"Found {len(response.data)} records for {target_date}")
-                for i, record in enumerate(response.data):
-                    logger.info(f"Record {i+1}: {record}")
+            # Фильтруем записи, для которых сегодня нужно отправить напоминание
+            current_date = datetime.now()
+            target_records = []
             
-            return response.data
+            for record in response.data:
+                event_date_str = record.get('event_date')
+                if not event_date_str:
+                    continue
+                
+                try:
+                    # Парсим исходную дату события (например, "1989-09-05")
+                    original_event_date = datetime.strptime(event_date_str, '%Y-%m-%d')
+                    
+                    # Создаем дату события для текущего года
+                    current_year_event_date = datetime(
+                        current_date.year, 
+                        original_event_date.month, 
+                        original_event_date.day
+                    )
+                    
+                    # Вычисляем дату отправки (за 20 дней до события)
+                    send_date = current_year_event_date - timedelta(days=20)
+                    
+                    # Проверяем, совпадает ли сегодняшняя дата с датой отправки
+                    if current_date.date() == send_date.date():
+                        target_records.append(record)
+                        logger.info(f"Match found: {record.get('name')} - original: {event_date_str}, current year event: {current_year_event_date.strftime('%Y-%m-%d')}, send date: {send_date.strftime('%Y-%m-%d')}")
+                
+                except ValueError as e:
+                    logger.warning(f"Invalid date format for record {record.get('name')}: {event_date_str}")
+                    continue
+            
+            logger.info(f"Found {len(target_records)} records to send today")
+            return target_records
         except Exception as e:
             logger.error(f"Failed to fetch contact data: {e}")
             logger.error(f"Exception type: {type(e)}")
@@ -157,19 +183,19 @@ def main():
         
         # Настраиваем дополнительные параметры
         current_time = datetime.now().strftime('%H:%M %d.%m.%Y')
-        target_date = (datetime.now() + timedelta(days=20)).strftime('%d.%m.%Y')
+        current_date = datetime.now().strftime('%d.%m.%Y')
         
         # Получаем настройки из переменных окружения или используем значения по умолчанию
-        custom_header = os.getenv('CUSTOM_HEADER', f"📋 Напоминание о днях рождения ({target_date}):")
+        custom_header = os.getenv('CUSTOM_HEADER', f"📋 Напоминание о днях рождения:")
         custom_footer = os.getenv('CUSTOM_FOOTER', f"✅ Отправлено: {current_time}")
         
         header_text = custom_header
         footer_text = custom_footer
         
         if not contacts:
-            logger.info("No birthday records found for target date")
+            logger.info("No birthday records found for today")
             # Отправляем сообщение о том, что записей нет
-            bot.send_message(f"✅ Бот работает! Время: {current_time}\n📋 На {target_date} нет записей о днях рождения")
+            bot.send_message(f"✅ Бот работает! Время: {current_time}\n📋 На сегодня ({current_date}) нет записей о днях рождения для отправки")
             return
         
         # Форматируем данные в красивое сообщение
