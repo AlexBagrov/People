@@ -62,13 +62,23 @@ class SupabaseManager:
         
         self.supabase: Client = create_client(supabase_url, supabase_key)
         logger.info("Supabase client initialized successfully")
+        
+        # Диагностика: попробуем получить информацию о доступных таблицах
+        try:
+            logger.info("Attempting to get database schema info...")
+            # Простой запрос для проверки подключения
+            test_response = self.supabase.from_('contact').select('count').limit(1).execute()
+            logger.info(f"Database connection test successful")
+        except Exception as e:
+            logger.warning(f"Database schema check failed: {e}")
+            logger.info("Continuing with main functionality...")
     
     def get_contact_data(self):
         """Получаем все записи из таблицы contact"""
         try:
-            logger.info("Attempting to fetch data from public.contact...")
-            # Используем from_() с явным указанием схемы
-            response = self.supabase.from_('public.contact').select('*').execute()
+            logger.info("Attempting to fetch data from contact table...")
+            # Используем правильный запрос без дублирования схемы
+            response = self.supabase.from_('contact').select('*').execute()
             
             logger.info(f"Raw response: {response}")
             logger.info(f"Response data: {response.data}")
@@ -76,24 +86,14 @@ class SupabaseManager:
             
             if response.data:
                 logger.info(f"First record: {response.data[0]}")
+                logger.info(f"Columns in first record: {list(response.data[0].keys())}")
             
             logger.info(f"Found {len(response.data)} records in contact table")
             return response.data
         except Exception as e:
             logger.error(f"Failed to fetch contact data: {e}")
             logger.error(f"Exception type: {type(e)}")
-            # Попробуем альтернативный способ без схемы
-            try:
-                logger.info("Trying alternative method without schema...")
-                response = self.supabase.from_('contact').select('*').execute()
-                logger.info(f"Alternative response: {response}")
-                logger.info(f"Alternative data: {response.data}")
-                logger.info(f"Alternative method found {len(response.data)} records")
-                return response.data
-            except Exception as e2:
-                logger.error(f"Alternative method also failed: {e2}")
-                logger.error(f"Alternative exception type: {type(e2)}")
-                return []
+            return []
     
     def format_contact_table(self, contacts):
         """Форматируем данные контактов в таблицу с заголовками"""
@@ -102,6 +102,7 @@ class SupabaseManager:
         
         # Получаем заголовки из первой записи
         headers = list(contacts[0].keys())
+        logger.info(f"Formatting table with {len(headers)} columns: {headers}")
         
         # Создаем HTML таблицу
         table_html = "<b>📋 Данные из таблицы contact:</b>\n\n"
@@ -113,9 +114,12 @@ class SupabaseManager:
         table_html += "-" * len(header_row) + "\n"
         
         # Данные
-        for contact in contacts:
+        for i, contact in enumerate(contacts):
             row = " | ".join(str(contact.get(header, '')) for header in headers)
             table_html += row + "\n"
+            # Логируем первую запись для диагностики
+            if i == 0:
+                logger.info(f"First row data: {contact}")
         
         table_html += "</pre>"
         
