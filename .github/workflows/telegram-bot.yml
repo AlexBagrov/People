@@ -10,9 +10,8 @@ on:
   workflow_dispatch:
     inputs:
       test_message:
-        description: 'Test message to send'
+        description: 'Test message to send (оставьте пустым для SQL запроса)'
         required: false
-        default: 'Manual test from GitHub Actions'
   
   # При изменениях в main ветке
   push:
