@@ -74,60 +74,49 @@ class SupabaseManager:
             logger.info("Continuing with main functionality...")
     
     def get_contact_data(self):
-        """Получаем записи из таблицы contact с выбранными полями"""
+        """Получаем конкретную запись из таблицы contact"""
         try:
-            logger.info("Attempting to fetch name and message data from contact table...")
-            # Выбираем только нужные поля
-            response = self.supabase.from_('contact').select('name, message').execute()
+            logger.info("Attempting to fetch data for Леонид Дронкин from contact table...")
+            # Выбираем запись с конкретным именем
+            response = self.supabase.from_('contact').select('name, message').eq('name', 'Леонид Дронкин').execute()
             
             logger.info(f"Raw response: {response}")
             logger.info(f"Response data: {response.data}")
             logger.info(f"Response count: {len(response.data) if response.data else 0}")
             
             if response.data:
-                logger.info(f"First record: {response.data[0]}")
-                logger.info(f"Columns in first record: {list(response.data[0].keys())}")
+                logger.info(f"Found record: {response.data[0]}")
+                logger.info(f"Columns in record: {list(response.data[0].keys())}")
             
-            logger.info(f"Found {len(response.data)} records in contact table")
+            logger.info(f"Found {len(response.data)} records for Леонид Дронкин")
             return response.data
         except Exception as e:
             logger.error(f"Failed to fetch contact data: {e}")
             logger.error(f"Exception type: {type(e)}")
             return []
     
-    def format_contact_table(self, contacts, header_text="📋 Сообщения от пользователей:", footer_text=""):
-        """Форматируем данные контактов в таблицу с заголовками и дополнительным текстом"""
+    def format_contact_message(self, contacts, header_text="📋 Сообщение от пользователя:", footer_text=""):
+        """Форматируем данные в красивое сообщение"""
         if not contacts:
-            return f"{header_text}\n\n📋 Таблица contact пуста"
+            return f"{header_text}\n\n📋 Запись для Леонид Дронкин не найдена"
         
-        # Получаем заголовки из первой записи
-        headers = list(contacts[0].keys())
-        logger.info(f"Formatting table with {len(headers)} columns: {headers}")
+        # Берем первую (и единственную) запись
+        contact = contacts[0]
+        name = contact.get('name', 'Неизвестно')
+        message = contact.get('message', 'Сообщение отсутствует')
         
-        # Создаем HTML таблицу
-        table_html = f"<b>{header_text}</b>\n\n"
-        table_html += "<pre>\n"
+        logger.info(f"Formatting message for: {name}")
+        logger.info(f"Message content: {message}")
         
-        # Заголовки
-        header_row = " | ".join(str(header) for header in headers)
-        table_html += header_row + "\n"
-        table_html += "-" * len(header_row) + "\n"
-        
-        # Данные
-        for i, contact in enumerate(contacts):
-            row = " | ".join(str(contact.get(header, '')) for header in headers)
-            table_html += row + "\n"
-            # Логируем первую запись для диагностики
-            if i == 0:
-                logger.info(f"First row data: {contact}")
-        
-        table_html += "</pre>"
+        # Создаем красивое сообщение
+        message_html = f"<b>{header_text}</b>\n\n"
+        message_html += f"<b>{name}</b>: {message} 🎉"
         
         # Добавляем дополнительный текст в конце
         if footer_text:
-            table_html += f"\n{footer_text}"
+            message_html += f"\n\n{footer_text}"
         
-        return table_html
+        return message_html
 
 def main():
     logger.info("🚀 Starting Telegram bot job...")
@@ -156,28 +145,28 @@ def main():
         current_time = datetime.now().strftime('%H:%M %d.%m.%Y')
         
         # Получаем настройки из переменных окружения или используем значения по умолчанию
-        custom_header = os.getenv('CUSTOM_HEADER', f"📋 Сообщения от пользователей ({current_time}):")
-        custom_footer = os.getenv('CUSTOM_FOOTER', f"✅ Всего сообщений: {len(contacts)} | Время отправки: {current_time}")
+        custom_header = os.getenv('CUSTOM_HEADER', f"📋 Сообщение от пользователя ({current_time}):")
+        custom_footer = os.getenv('CUSTOM_FOOTER', f"✅ Время отправки: {current_time}")
         
         header_text = custom_header
         footer_text = custom_footer
         
         if not contacts:
-            logger.info("No data found in contact table")
-            # Отправляем сообщение о том, что бот работает
-            bot.send_message(f"✅ Бот работает! Время: {current_time}\n📋 Таблица contact пуста")
+            logger.info("No data found for Леонид Дронкин")
+            # Отправляем сообщение о том, что запись не найдена
+            bot.send_message(f"✅ Бот работает! Время: {current_time}\n📋 Запись для Леонид Дронкин не найдена")
             return
         
-        # Форматируем данные в таблицу с дополнительным текстом
-        formatted_table = db.format_contact_table(contacts, header_text, footer_text)
+        # Форматируем данные в красивое сообщение
+        formatted_message = db.format_contact_message(contacts, header_text, footer_text)
         
-        # Отправляем таблицу
-        if bot.send_message(formatted_table):
-            logger.info(f"Contact table sent successfully with {len(contacts)} records")
+        # Отправляем сообщение
+        if bot.send_message(formatted_message):
+            logger.info(f"Contact message sent successfully")
         else:
-            logger.error("Failed to send contact table")
+            logger.error("Failed to send contact message")
         
-        logger.info(f"✅ Job completed successfully. Sent {len(contacts)} contact records")
+        logger.info(f"✅ Job completed successfully. Message sent for Леонид Дронкин")
         
     except Exception as e:
         error_msg = f"❌ Error in Telegram bot: {str(e)}"
