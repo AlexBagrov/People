@@ -74,11 +74,11 @@ class SupabaseManager:
             logger.info("Continuing with main functionality...")
     
     def get_contact_data(self):
-        """Получаем все записи из таблицы contact"""
+        """Получаем записи из таблицы contact с выбранными полями"""
         try:
-            logger.info("Attempting to fetch data from contact table...")
-            # Используем правильный запрос без дублирования схемы
-            response = self.supabase.from_('contact').select('*').execute()
+            logger.info("Attempting to fetch name and message data from contact table...")
+            # Выбираем только нужные поля
+            response = self.supabase.from_('contact').select('name, message').execute()
             
             logger.info(f"Raw response: {response}")
             logger.info(f"Response data: {response.data}")
@@ -95,17 +95,17 @@ class SupabaseManager:
             logger.error(f"Exception type: {type(e)}")
             return []
     
-    def format_contact_table(self, contacts):
-        """Форматируем данные контактов в таблицу с заголовками"""
+    def format_contact_table(self, contacts, header_text="📋 Сообщения от пользователей:", footer_text=""):
+        """Форматируем данные контактов в таблицу с заголовками и дополнительным текстом"""
         if not contacts:
-            return "📋 Таблица contact пуста"
+            return f"{header_text}\n\n📋 Таблица contact пуста"
         
         # Получаем заголовки из первой записи
         headers = list(contacts[0].keys())
         logger.info(f"Formatting table with {len(headers)} columns: {headers}")
         
         # Создаем HTML таблицу
-        table_html = "<b>📋 Данные из таблицы contact:</b>\n\n"
+        table_html = f"<b>{header_text}</b>\n\n"
         table_html += "<pre>\n"
         
         # Заголовки
@@ -122,6 +122,10 @@ class SupabaseManager:
                 logger.info(f"First row data: {contact}")
         
         table_html += "</pre>"
+        
+        # Добавляем дополнительный текст в конце
+        if footer_text:
+            table_html += f"\n{footer_text}"
         
         return table_html
 
@@ -148,14 +152,24 @@ def main():
         logger.info(f"Contacts type: {type(contacts)}")
         logger.info(f"Contacts length: {len(contacts) if contacts else 0}")
         
+        # Настраиваем дополнительные параметры
+        current_time = datetime.now().strftime('%H:%M %d.%m.%Y')
+        
+        # Получаем настройки из переменных окружения или используем значения по умолчанию
+        custom_header = os.getenv('CUSTOM_HEADER', f"📋 Сообщения от пользователей ({current_time}):")
+        custom_footer = os.getenv('CUSTOM_FOOTER', f"✅ Всего сообщений: {len(contacts)} | Время отправки: {current_time}")
+        
+        header_text = custom_header
+        footer_text = custom_footer
+        
         if not contacts:
             logger.info("No data found in contact table")
             # Отправляем сообщение о том, что бот работает
-            bot.send_message(f"✅ Бот работает! Время: {datetime.now().strftime('%H:%M %d.%m.%Y')}\n📋 Таблица contact пуста")
+            bot.send_message(f"✅ Бот работает! Время: {current_time}\n📋 Таблица contact пуста")
             return
         
-        # Форматируем данные в таблицу
-        formatted_table = db.format_contact_table(contacts)
+        # Форматируем данные в таблицу с дополнительным текстом
+        formatted_table = db.format_contact_table(contacts, header_text, footer_text)
         
         # Отправляем таблицу
         if bot.send_message(formatted_table):

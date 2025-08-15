@@ -43,3 +43,5 @@ jobs:
         TELEGRAM_TIGER_BOT_TOKEN: ${{ secrets.TELEGRAM_TIGER_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         TEST_MESSAGE: ${{ github.event.inputs.test_message }}
+        CUSTOM_HEADER: ${{ secrets.CUSTOM_HEADER }}
+        CUSTOM_FOOTER: ${{ secrets.CUSTOM_FOOTER }}
