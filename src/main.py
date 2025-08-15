@@ -184,18 +184,19 @@ def main():
         # Настраиваем дополнительные параметры
         current_time = datetime.now().strftime('%H:%M %d.%m.%Y')
         current_date = datetime.now().strftime('%d.%m.%Y')
+        target_date = (datetime.now() + timedelta(days=20)).strftime('%d.%m.%Y')
         
         # Получаем настройки из переменных окружения или используем значения по умолчанию
-        custom_header = os.getenv('CUSTOM_HEADER', f"📋 Напоминание о днях рождения:")
+        custom_header = os.getenv('CUSTOM_HEADER', f"📋 Напоминание о днях рождения ({target_date}):")
         custom_footer = os.getenv('CUSTOM_FOOTER', f"✅ Отправлено: {current_time}")
         
         header_text = custom_header
         footer_text = custom_footer
         
         if not contacts:
-            logger.info("No birthday records found for today")
+            logger.info("No birthday records found for target date")
             # Отправляем сообщение о том, что записей нет
-            bot.send_message(f"✅ Бот работает! Время: {current_time}\n📋 На сегодня ({current_date}) нет записей о днях рождения для отправки")
+            bot.send_message(f"✅ Бот работает! Время: {current_time}\n📋 На {target_date} нет записей о днях рождения")
             return
         
         # Форматируем данные в красивое сообщение
