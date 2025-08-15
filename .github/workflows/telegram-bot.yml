@@ -1,12 +1,12 @@
-name: Telegram Bot Notifications
+name: Main Bot Workflow
 
 on:
   # По расписанию
   schedule:
-    - cron: '0 8 * * *'    # Каждый день в 8:00 UTC (11:00 по Москве)
-    - cron: '0 18 * * *'   # Каждый день в 18:00 UTC (21:00 по Москве)
+    - cron: '0 8 * * *'    # Каждый день в 8:00 UTC
+    - cron: '0 18 * * *'   # Каждый день в 18:00 UTC
   
-  # Ручной запуск для тестирования
+  # Ручной запуск
   workflow_dispatch:
     inputs:
       test_message:
@@ -14,20 +14,18 @@ on:
         required: false
         default: 'Manual test from GitHub Actions'
   
-  # При изменениях в main ветке (для тестирования)
+  # При изменениях в main ветке
   push:
     branches: [ main ]
-    paths: ['src/**']  # только при изменении папки src
+    paths: ['src/**']
 
 jobs:
-  send-notifications:
+  run-bot:
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Setup Python
       uses: actions/setup-python@v4
