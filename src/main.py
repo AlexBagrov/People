@@ -1,6 +1,6 @@
 import os
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from supabase import create_client, Client
 from dotenv import load_dotenv
@@ -74,43 +74,57 @@ class SupabaseManager:
             logger.info("Continuing with main functionality...")
     
     def get_contact_data(self):
-        """Получаем конкретную запись из таблицы contact"""
+        """Получаем записи из таблицы contact по дате события"""
         try:
-            logger.info("Attempting to fetch data for Леонид Дронкин from contact table...")
-            # Выбираем запись с конкретным именем
-            response = self.supabase.from_('contact').select('name, message').eq('name', 'Леонид Дронкин').execute()
+            # Вычисляем дату события (сегодня + 20 дней для birthday)
+            from datetime import datetime, timedelta
+            target_date = (datetime.now() + timedelta(days=20)).strftime('%Y-%m-%d')
+            
+            logger.info(f"Fetching records for event_date: {target_date}, event_type: birthday")
+            
+            # Выбираем записи с конкретной датой и типом события
+            response = self.supabase.from_('contact').select('name, message, event_date, event_type').eq('event_date', target_date).eq('event_type', 'birthday').execute()
             
             logger.info(f"Raw response: {response}")
             logger.info(f"Response data: {response.data}")
             logger.info(f"Response count: {len(response.data) if response.data else 0}")
             
             if response.data:
-                logger.info(f"Found record: {response.data[0]}")
-                logger.info(f"Columns in record: {list(response.data[0].keys())}")
+                logger.info(f"Found {len(response.data)} records for {target_date}")
+                for i, record in enumerate(response.data):
+                    logger.info(f"Record {i+1}: {record}")
             
-            logger.info(f"Found {len(response.data)} records for Леонид Дронкин")
             return response.data
         except Exception as e:
             logger.error(f"Failed to fetch contact data: {e}")
             logger.error(f"Exception type: {type(e)}")
             return []
     
-    def format_contact_message(self, contacts, header_text="📋 Сообщение от пользователя:", footer_text=""):
-        """Форматируем данные в красивое сообщение"""
+    def format_contact_message(self, contacts, header_text="📋 Сообщения о днях рождения:", footer_text=""):
+        """Форматируем данные в красивое сообщение для всех записей"""
         if not contacts:
-            return f"{header_text}\n\n📋 Запись для Леонид Дронкин не найдена"
+            return f"{header_text}\n\n📋 На сегодня нет записей о днях рождения"
         
-        # Берем первую (и единственную) запись
-        contact = contacts[0]
-        name = contact.get('name', 'Неизвестно')
-        message = contact.get('message', 'Сообщение отсутствует')
+        logger.info(f"Formatting messages for {len(contacts)} records")
         
-        logger.info(f"Formatting message for: {name}")
-        logger.info(f"Message content: {message}")
-        
-        # Создаем красивое сообщение
+        # Создаем заголовок сообщения
         message_html = f"<b>{header_text}</b>\n\n"
-        message_html += f"<b>{name}</b>: {message} 🎉"
+        
+        # Обрабатываем каждую запись
+        for i, contact in enumerate(contacts):
+            name = contact.get('name', 'Неизвестно')
+            message = contact.get('message', 'Сообщение отсутствует')
+            event_date = contact.get('event_date', 'Дата не указана')
+            
+            logger.info(f"Formatting message {i+1} for: {name}")
+            logger.info(f"Message content: {message}")
+            
+            # Добавляем сообщение с эмодзи для дня рождения
+            message_html += f"<b>{name}</b>: {message} 🎂\n"
+            
+            # Добавляем разделитель между записями (кроме последней)
+            if i < len(contacts) - 1:
+                message_html += "\n"
         
         # Добавляем дополнительный текст в конце
         if footer_text:
@@ -143,18 +157,19 @@ def main():
         
         # Настраиваем дополнительные параметры
         current_time = datetime.now().strftime('%H:%M %d.%m.%Y')
+        target_date = (datetime.now() + timedelta(days=20)).strftime('%d.%m.%Y')
         
         # Получаем настройки из переменных окружения или используем значения по умолчанию
-        custom_header = os.getenv('CUSTOM_HEADER', f"📋 Сообщение от пользователя ({current_time}):")
-        custom_footer = os.getenv('CUSTOM_FOOTER', f"✅ Время отправки: {current_time}")
+        custom_header = os.getenv('CUSTOM_HEADER', f"📋 Напоминание о днях рождения ({target_date}):")
+        custom_footer = os.getenv('CUSTOM_FOOTER', f"✅ Отправлено: {current_time}")
         
         header_text = custom_header
         footer_text = custom_footer
         
         if not contacts:
-            logger.info("No data found for Леонид Дронкин")
-            # Отправляем сообщение о том, что запись не найдена
-            bot.send_message(f"✅ Бот работает! Время: {current_time}\n📋 Запись для Леонид Дронкин не найдена")
+            logger.info("No birthday records found for target date")
+            # Отправляем сообщение о том, что записей нет
+            bot.send_message(f"✅ Бот работает! Время: {current_time}\n📋 На {target_date} нет записей о днях рождения")
             return
         
         # Форматируем данные в красивое сообщение
@@ -162,11 +177,11 @@ def main():
         
         # Отправляем сообщение
         if bot.send_message(formatted_message):
-            logger.info(f"Contact message sent successfully")
+            logger.info(f"Birthday messages sent successfully for {len(contacts)} records")
         else:
-            logger.error("Failed to send contact message")
+            logger.error("Failed to send birthday messages")
         
-        logger.info(f"✅ Job completed successfully. Message sent for Леонид Дронкин")
+        logger.info(f"✅ Job completed successfully. Sent {len(contacts)} birthday reminders")
         
     except Exception as e:
         error_msg = f"❌ Error in Telegram bot: {str(e)}"

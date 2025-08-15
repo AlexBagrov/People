@@ -3,8 +3,7 @@ name: Main Bot Workflow
 on:
   # По расписанию
   schedule:
-    - cron: '0 8 * * *'    # Каждый день в 8:00 UTC
-    - cron: '0 18 * * *'   # Каждый день в 18:00 UTC
+    - cron: '0 15 * * *'   # Каждый день в 15:00 UTC (18:00 по Москве)
   
   # Ручной запуск
   workflow_dispatch:
