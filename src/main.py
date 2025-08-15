@@ -56,21 +56,33 @@ class SupabaseManager:
     def get_contact_data(self):
         """Получаем все записи из таблицы contact"""
         try:
+            logger.info("Attempting to fetch data from public.contact...")
             # Используем from_() с явным указанием схемы
             response = self.supabase.from_('public.contact').select('*').execute()
+            
+            logger.info(f"Raw response: {response}")
+            logger.info(f"Response data: {response.data}")
+            logger.info(f"Response count: {len(response.data) if response.data else 0}")
+            
+            if response.data:
+                logger.info(f"First record: {response.data[0]}")
             
             logger.info(f"Found {len(response.data)} records in contact table")
             return response.data
         except Exception as e:
             logger.error(f"Failed to fetch contact data: {e}")
+            logger.error(f"Exception type: {type(e)}")
             # Попробуем альтернативный способ без схемы
             try:
                 logger.info("Trying alternative method without schema...")
                 response = self.supabase.from_('contact').select('*').execute()
+                logger.info(f"Alternative response: {response}")
+                logger.info(f"Alternative data: {response.data}")
                 logger.info(f"Alternative method found {len(response.data)} records")
                 return response.data
             except Exception as e2:
                 logger.error(f"Alternative method also failed: {e2}")
+                logger.error(f"Alternative exception type: {type(e2)}")
                 return []
     
     def format_contact_table(self, contacts):
@@ -117,6 +129,10 @@ def main():
         
         # Получаем данные из таблицы contact
         contacts = db.get_contact_data()
+        
+        logger.info(f"Contacts data received: {contacts}")
+        logger.info(f"Contacts type: {type(contacts)}")
+        logger.info(f"Contacts length: {len(contacts) if contacts else 0}")
         
         if not contacts:
             logger.info("No data found in contact table")
