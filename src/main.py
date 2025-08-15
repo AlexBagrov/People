@@ -14,11 +14,16 @@ logger = logging.getLogger(__name__)
 
 class TelegramBot:
     def __init__(self):
-        self.bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
+        self.bot_token = os.getenv('TELEGRAM_TIGER_BOT_TOKEN')
         self.chat_id = os.getenv('TELEGRAM_CHAT_ID')
         
+        # Диагностика переменных окружения
+        logger.info(f"TELEGRAM_TIGER_BOT_TOKEN exists: {bool(self.bot_token)}")
+        logger.info(f"TELEGRAM_CHAT_ID exists: {bool(self.chat_id)}")
+        
         if not self.bot_token or not self.chat_id:
-            logger.error("TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not found in environment variables")
+            logger.error("TELEGRAM_TIGER_BOT_TOKEN or TELEGRAM_CHAT_ID not found in environment variables")
+            logger.error("Please check GitHub Secrets configuration")
             raise ValueError("Missing Telegram credentials")
         
         self.base_url = f"https://api.telegram.org/bot{self.bot_token}"
@@ -46,8 +51,13 @@ class SupabaseManager:
         supabase_url = os.getenv('SUPABASE_URL')
         supabase_key = os.getenv('SUPABASE_ANON_KEY')
         
+        # Диагностика переменных окружения
+        logger.info(f"SUPABASE_URL exists: {bool(supabase_url)}")
+        logger.info(f"SUPABASE_ANON_KEY exists: {bool(supabase_key)}")
+        
         if not supabase_url or not supabase_key:
             logger.error("SUPABASE_URL or SUPABASE_ANON_KEY not found in environment variables")
+            logger.error("Please check GitHub Secrets configuration")
             raise ValueError("Missing Supabase credentials")
         
         self.supabase: Client = create_client(supabase_url, supabase_key)
