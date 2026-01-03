@@ -14,15 +14,15 @@ logger = logging.getLogger(__name__)
 
 class TelegramBot:
     def __init__(self):
-        self.bot_token = os.getenv('TELEGRAM_TIGER_BOT_TOKEN')
+        self.bot_token = os.getenv('HELPER_ME_TIGER_BOT_TOKEN')
         self.chat_id = os.getenv('TELEGRAM_CHAT_ID')
         
         # Диагностика переменных окружения
-        logger.info(f"TELEGRAM_TIGER_BOT_TOKEN exists: {bool(self.bot_token)}")
+        logger.info(f"HELPER_ME_TIGER_BOT_TOKEN exists: {bool(self.bot_token)}")
         logger.info(f"TELEGRAM_CHAT_ID exists: {bool(self.chat_id)}")
         
         if not self.bot_token or not self.chat_id:
-            logger.error("TELEGRAM_TIGER_BOT_TOKEN or TELEGRAM_CHAT_ID not found in environment variables")
+            logger.error("HELPER_ME_TIGER_BOT_TOKEN or TELEGRAM_CHAT_ID not found in environment variables")
             logger.error("Please check GitHub Secrets configuration")
             raise ValueError("Missing Telegram credentials")
         
